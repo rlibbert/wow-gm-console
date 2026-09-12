@@ -1,5 +1,14 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { AppError, ConnectionTestResult, ServerProfile } from './types';
+import type {
+	AppError,
+	ConnectionTestResult,
+	DbConnectionConfig,
+	DbConnectionTestResult,
+	ItemFilter,
+	ItemSummary,
+	ServerProfile,
+	Teleport
+} from './types';
 
 /** Thin, typed wrapper around every Tauri IPC call this app makes. Every
  * view should import from here rather than calling `invoke()` directly, so
@@ -16,8 +25,10 @@ export function addProfile(params: {
 	soapPort: number;
 	username: string;
 	password: string;
+	db?: DbConnectionConfig | null;
+	dbPassword?: string | null;
 }): Promise<ServerProfile> {
-	return invoke('add_profile', params);
+	return invoke('add_profile', { ...params, db: params.db ?? null, dbPassword: params.dbPassword ?? null });
 }
 
 export function updateProfile(params: {
@@ -27,8 +38,15 @@ export function updateProfile(params: {
 	soapPort: number;
 	username: string;
 	password?: string;
+	db?: DbConnectionConfig | null;
+	dbPassword?: string | null;
 }): Promise<ServerProfile> {
-	return invoke('update_profile', params);
+	return invoke('update_profile', {
+		...params,
+		password: params.password ?? null,
+		db: params.db ?? null,
+		dbPassword: params.dbPassword ?? null
+	});
 }
 
 export function removeProfile(id: string): Promise<void> {
@@ -96,6 +114,22 @@ export function gmServerInfo(profileId: string): Promise<string> {
 
 export function gmReloadTable(profileId: string, table: string): Promise<string> {
 	return invoke('gm_reload_table', { profileId, table });
+}
+
+export function testDbConnection(id: string): Promise<DbConnectionTestResult> {
+	return invoke('test_db_connection', { id });
+}
+
+export function listTeleports(profileId: string): Promise<Teleport[]> {
+	return invoke('list_teleports', { id: profileId });
+}
+
+export function searchItems(
+	profileId: string,
+	filter: ItemFilter,
+	limit?: number
+): Promise<ItemSummary[]> {
+	return invoke('search_items', { id: profileId, filter, limit: limit ?? null });
 }
 
 /** Type guard for the structured errors our Rust commands reject with. */

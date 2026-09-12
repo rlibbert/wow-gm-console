@@ -1,9 +1,17 @@
+export interface DbConnectionConfig {
+	host: string;
+	port: number;
+	database: string;
+	username: string;
+}
+
 export interface ServerProfile {
 	id: string;
 	name: string;
 	host: string;
 	soapPort: number;
 	username: string;
+	db?: DbConnectionConfig | null;
 }
 
 export type ErrorKind =
@@ -15,7 +23,8 @@ export type ErrorKind =
 	| 'malformedResponse'
 	| 'notFound'
 	| 'keychainError'
-	| 'storeError';
+	| 'storeError'
+	| 'databaseError';
 
 export interface AppError {
 	kind: ErrorKind;
@@ -26,6 +35,41 @@ export interface ConnectionTestResult {
 	success: boolean;
 	latencyMs: number;
 	message: string;
+}
+
+export interface DbConnectionTestResult {
+	success: boolean;
+	latencyMs: number;
+	message: string;
+}
+
+export interface Teleport {
+	id: number;
+	name: string;
+	map: number;
+	positionX: number;
+	positionY: number;
+	positionZ: number;
+	orientation: number;
+}
+
+export interface ItemSummary {
+	entry: number;
+	name: string;
+	class: number;
+	subclass: number;
+	quality: number;
+	requiredLevel: number;
+	itemLevel: number;
+	inventoryType: number;
+}
+
+export interface ItemFilter {
+	nameSubstring?: string;
+	class?: number;
+	subclass?: number;
+	qualityMin?: number;
+	requiredLevelMax?: number;
 }
 
 export interface LogEntry {
@@ -57,5 +101,7 @@ export function errorKindLabel(kind: ErrorKind): string {
 			return 'Could not access the system keychain';
 		case 'storeError':
 			return 'Could not read/write saved profiles';
+		case 'databaseError':
+			return 'Database error — check DB host/port/credentials and that the read-only MySQL user has SELECT privileges on the world database';
 	}
 }
