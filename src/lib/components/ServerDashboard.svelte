@@ -2,6 +2,7 @@
 	import ConsoleOutput from './ConsoleOutput.svelte';
 	import WaypointPicker from './WaypointPicker.svelte';
 	import ItemPicker from './ItemPicker.svelte';
+	import CharacterPicker from './CharacterPicker.svelte';
 	import { appState } from '$lib/appState.svelte';
 	import * as api from '$lib/tauriApi';
 	import { runAction } from '$lib/runAction';
@@ -11,6 +12,10 @@
 	let openForm = $state<string | null>(null);
 	let showWaypointPicker = $state(false);
 	let showItemPicker = $state(false);
+	// Shared across Revive/Set Level/Teleport(Named)/Kick, all of which bind
+	// the same `target` field -- only one of those forms is open at once
+	// (gated by `openForm`), so one toggle is enough.
+	let showCharacterPicker = $state(false);
 
 	// form fields, shared scratch state reused across the small forms below
 	let target = $state('');
@@ -100,6 +105,26 @@
 	}
 </script>
 
+{#snippet targetPickerRow()}
+	{#if appState.activeProfile?.db}
+		<button type="button" onclick={() => (showCharacterPicker = !showCharacterPicker)}>
+			Browse…
+		</button>
+	{/if}
+{/snippet}
+
+{#snippet targetPickerPanel()}
+	{#if showCharacterPicker && appState.activeProfile?.db}
+		<CharacterPicker
+			profileId={profileId()}
+			onselect={(name) => {
+				target = name;
+				showCharacterPicker = false;
+			}}
+		/>
+	{/if}
+{/snippet}
+
 {#if appState.activeProfile}
 	<div class="dashboard">
 		<div class="header">
@@ -126,7 +151,11 @@
 					{#if openForm === 'revive'}
 						<div class="form">
 							<input bind:value={target} placeholder="Target name (blank = self)" />
-							<button onclick={doRevive}>Run</button>
+							<div class="form-row">
+								<button onclick={doRevive}>Run</button>
+								{@render targetPickerRow()}
+							</div>
+							{@render targetPickerPanel()}
 						</div>
 					{/if}
 				</div>
@@ -167,7 +196,11 @@
 						<div class="form">
 							<input bind:value={target} placeholder="Target name" />
 							<input type="number" bind:value={level} min="1" max="255" />
-							<button onclick={doSetLevel}>Run</button>
+							<div class="form-row">
+								<button onclick={doSetLevel}>Run</button>
+								{@render targetPickerRow()}
+							</div>
+							{@render targetPickerPanel()}
 						</div>
 					{/if}
 				</div>
@@ -190,15 +223,17 @@
 							<input bind:value={location} placeholder="Location name" />
 							<div class="form-row">
 								<button onclick={doTeleportNamed}>Run</button>
+								{@render targetPickerRow()}
 								{#if appState.activeProfile?.db}
 									<button
 										type="button"
 										onclick={() => (showWaypointPicker = !showWaypointPicker)}
 									>
-										Browse…
+										Browse locations…
 									</button>
 								{/if}
 							</div>
+							{@render targetPickerPanel()}
 							{#if showWaypointPicker && appState.activeProfile?.db}
 								<WaypointPicker
 									profileId={profileId()}
@@ -231,7 +266,11 @@
 						<div class="form">
 							<input bind:value={target} placeholder="Target name" />
 							<input bind:value={reason} placeholder="Reason (optional)" />
-							<button onclick={doKick}>Run</button>
+							<div class="form-row">
+								<button onclick={doKick}>Run</button>
+								{@render targetPickerRow()}
+							</div>
+							{@render targetPickerPanel()}
 						</div>
 					{/if}
 				</div>

@@ -72,6 +72,20 @@ export interface ItemFilter {
 	requiredLevelMax?: number;
 }
 
+export interface CharacterSummary {
+	guid: number;
+	name: string;
+	race: number;
+	class: number;
+	level: number;
+	online: number;
+}
+
+export interface CharacterFilter {
+	nameSubstring?: string;
+	onlineOnly: boolean;
+}
+
 export interface LogEntry {
 	id: number;
 	timestamp: Date;

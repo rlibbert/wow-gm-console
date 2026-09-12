@@ -1,6 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import type {
 	AppError,
+	CharacterFilter,
+	CharacterSummary,
 	ConnectionTestResult,
 	DbConnectionConfig,
 	DbConnectionTestResult,
@@ -130,6 +132,14 @@ export function searchItems(
 	limit?: number
 ): Promise<ItemSummary[]> {
 	return invoke('search_items', { id: profileId, filter, limit: limit ?? null });
+}
+
+export function searchCharacters(
+	profileId: string,
+	filter: CharacterFilter,
+	limit?: number
+): Promise<CharacterSummary[]> {
+	return invoke('search_characters', { id: profileId, filter, limit: limit ?? null });
 }
 
 /** Type guard for the structured errors our Rust commands reject with. */
