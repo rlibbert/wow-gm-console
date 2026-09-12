@@ -1,7 +1,7 @@
 use tauri::State;
 use uuid::Uuid;
 
-use crate::error::AppError;
+use crate::error::{AppError, ErrorKind};
 use crate::gm_actions;
 use crate::profiles::{self, ProfileStore, ServerProfile};
 use crate::soap;
@@ -27,8 +27,10 @@ pub fn add_profile(
     soap_port: u16,
     username: String,
     password: String,
-) -> Result<ServerProfile, String> {
-    store.add(name, host, soap_port, username, password)
+) -> Result<ServerProfile, AppError> {
+    store
+        .add(name, host, soap_port, username, password)
+        .map_err(|e| AppError::new(ErrorKind::StoreError, e))
 }
 
 #[tauri::command]
@@ -40,13 +42,17 @@ pub fn update_profile(
     soap_port: u16,
     username: String,
     password: Option<String>,
-) -> Result<ServerProfile, String> {
-    store.update(id, name, host, soap_port, username, password)
+) -> Result<ServerProfile, AppError> {
+    store
+        .update(id, name, host, soap_port, username, password)
+        .map_err(|e| AppError::new(ErrorKind::StoreError, e))
 }
 
 #[tauri::command]
-pub fn remove_profile(store: State<'_, ProfileStore>, id: Uuid) -> Result<(), String> {
-    store.remove(id)
+pub fn remove_profile(store: State<'_, ProfileStore>, id: Uuid) -> Result<(), AppError> {
+    store
+        .remove(id)
+        .map_err(|e| AppError::new(ErrorKind::StoreError, e))
 }
 
 #[tauri::command]
@@ -56,9 +62,9 @@ pub async fn test_connection(
 ) -> Result<ConnectionTestResult, AppError> {
     let profile = store
         .get(id)
-        .map_err(|e| AppError::new(crate::error::ErrorKind::NotFound, e))?;
+        .map_err(|e| AppError::new(ErrorKind::NotFound, e))?;
     let password = profiles::get_password(id)
-        .map_err(|e| AppError::new(crate::error::ErrorKind::KeychainError, e))?;
+        .map_err(|e| AppError::new(ErrorKind::KeychainError, e))?;
 
     let started = std::time::Instant::now();
     let result = soap::execute_command(
