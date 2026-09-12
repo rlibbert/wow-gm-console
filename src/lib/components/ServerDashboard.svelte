@@ -1,5 +1,7 @@
 <script lang="ts">
 	import ConsoleOutput from './ConsoleOutput.svelte';
+	import WaypointPicker from './WaypointPicker.svelte';
+	import ItemPicker from './ItemPicker.svelte';
 	import { appState } from '$lib/appState.svelte';
 	import * as api from '$lib/tauriApi';
 	import { runAction } from '$lib/runAction';
@@ -7,6 +9,8 @@
 	import { errorKindLabel } from '$lib/types';
 
 	let openForm = $state<string | null>(null);
+	let showWaypointPicker = $state(false);
+	let showItemPicker = $state(false);
 
 	// form fields, shared scratch state reused across the small forms below
 	let target = $state('');
@@ -133,7 +137,26 @@
 						<div class="form">
 							<input bind:value={itemId} placeholder="Item ID or #name" />
 							<input type="number" bind:value={count} min="1" />
-							<button onclick={doAddItem}>Run</button>
+							<div class="form-row">
+								<button onclick={doAddItem}>Run</button>
+								{#if appState.activeProfile?.db}
+									<button
+										type="button"
+										onclick={() => (showItemPicker = !showItemPicker)}
+									>
+										Browse…
+									</button>
+								{/if}
+							</div>
+							{#if showItemPicker && appState.activeProfile?.db}
+								<ItemPicker
+									profileId={profileId()}
+									onselect={(entry) => {
+										itemId = String(entry);
+										showItemPicker = false;
+									}}
+								/>
+							{/if}
 						</div>
 					{/if}
 				</div>
@@ -165,7 +188,26 @@
 						<div class="form">
 							<input bind:value={target} placeholder="Target name" />
 							<input bind:value={location} placeholder="Location name" />
-							<button onclick={doTeleportNamed}>Run</button>
+							<div class="form-row">
+								<button onclick={doTeleportNamed}>Run</button>
+								{#if appState.activeProfile?.db}
+									<button
+										type="button"
+										onclick={() => (showWaypointPicker = !showWaypointPicker)}
+									>
+										Browse…
+									</button>
+								{/if}
+							</div>
+							{#if showWaypointPicker && appState.activeProfile?.db}
+								<WaypointPicker
+									profileId={profileId()}
+									onselect={(name) => {
+										location = name;
+										showWaypointPicker = false;
+									}}
+								/>
+							{/if}
 						</div>
 					{/if}
 				</div>
@@ -270,7 +312,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.4rem;
-		width: 260px;
+		width: 320px;
 		overflow-y: auto;
 	}
 
@@ -287,6 +329,11 @@
 		background: var(--surface-raised, #f0f0f0);
 		border-radius: 6px;
 		margin-top: 0.2rem;
+	}
+
+	.form-row {
+		display: flex;
+		gap: 0.3rem;
 	}
 
 	.log {
