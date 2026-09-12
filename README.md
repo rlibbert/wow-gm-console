@@ -71,7 +71,7 @@ npm run tauri dev
 npm run tauri build
 ```
 
-Produces a native installer/bundle for whatever OS you build on (Linux `.deb`/`.AppImage`/`.rpm`, Windows `.msi`/`.exe`, macOS `.app`/`.dmg`). Cross-compiling for a different OS than the build machine isn't supported by Tauri — use CI (e.g. a GitHub Actions matrix with `ubuntu-latest`/`windows-latest`/`macos-latest`) to produce all three from one source tree.
+Produces a native installer/bundle for whatever OS you build on (Linux `.deb`/`.AppImage`/`.rpm`, Windows `.msi`/`.exe`, macOS `.app`/`.dmg`). Cross-compiling for a different OS than the build machine isn't supported by Tauri — this repo's `.github/workflows/release.yml` runs a matrix (`ubuntu-22.04`/`windows-latest`/`macos-latest`) to produce all three from one source tree on a tagged push. Linux is deliberately pinned to an older LTS rather than `ubuntu-latest` — the AppImage bundles the build host's glib but still dynamically loads system GIO modules (e.g. `gvfs`) at runtime, so a newer build host can produce a binary that segfaults on an even-newer host; an older base has much broader forward compatibility.
 
 ## Testing
 

@@ -19,7 +19,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: ubuntu-latest
+          # Pinned to an older LTS rather than ubuntu-latest: AppImages bundle
+          # the build host's glib, but still dynamically load GIO modules
+          # (e.g. gvfs) from whatever system they run on. Building on a newer
+          # Ubuntu produces a newer bundled glib that can mismatch an even
+          # newer host's GIO modules and segfault on launch (confirmed: the
+          # v0.2.0 AppImage built on ubuntu-latest crashed immediately on a
+          # newer host with "undefined symbol: g_variant_builder_init_static").
+          # An older build base has broader forward compatibility.
+          - platform: ubuntu-22.04
           - platform: windows-latest
           - platform: macos-latest
 
@@ -28,7 +36,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Linux system dependencies
-        if: matrix.platform == 'ubuntu-latest'
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
