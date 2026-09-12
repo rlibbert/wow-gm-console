@@ -10,7 +10,9 @@
 use std::env;
 
 use sqlx::mysql::MySqlPoolOptions;
-use wow_gm_console_lib::db::{search_items, search_teleports, DbError, ItemFilter};
+use wow_gm_console_lib::db::{
+    search_characters, search_items, search_teleports, CharacterFilter, DbError, ItemFilter,
+};
 
 struct TestDb {
     host: String,
@@ -95,6 +97,43 @@ async fn bad_password_maps_to_auth_failed() {
         .expect_err("wrong password should be rejected");
 
     assert!(matches!(DbError::from(err), DbError::AuthFailed));
+}
+
+#[tokio::test]
+#[ignore]
+async fn search_characters_finds_known_character() {
+    let db = test_db();
+    let pool = connect(&db).await;
+
+    let filter = CharacterFilter {
+        name_substring: Some("jaarl".to_string()),
+        online_only: false,
+    };
+    let results = search_characters(&pool, &filter, 20)
+        .await
+        .expect("cross-schema query against acore_characters should succeed");
+
+    assert!(
+        results.iter().any(|c| c.name.eq_ignore_ascii_case("Jaarl")),
+        "expected to find character 'Jaarl', got: {results:?}"
+    );
+}
+
+#[tokio::test]
+#[ignore]
+async fn search_characters_online_only_filters_correctly() {
+    let db = test_db();
+    let pool = connect(&db).await;
+
+    let filter = CharacterFilter {
+        name_substring: None,
+        online_only: true,
+    };
+    let results = search_characters(&pool, &filter, 50)
+        .await
+        .expect("query should succeed");
+
+    assert!(results.iter().all(|c| c.online == 1), "online_only should exclude offline characters");
 }
 
 #[tokio::test]

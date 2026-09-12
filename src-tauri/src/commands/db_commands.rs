@@ -2,7 +2,7 @@ use serde::Serialize;
 use tauri::State;
 use uuid::Uuid;
 
-use crate::db::{self, DbPoolCache, ItemFilter, ItemSummary, Teleport};
+use crate::db::{self, CharacterFilter, CharacterSummary, DbPoolCache, ItemFilter, ItemSummary, Teleport};
 use crate::error::{AppError, ErrorKind};
 use crate::profiles::{self, ProfileStore};
 
@@ -77,6 +77,20 @@ pub async fn search_items(
 ) -> Result<Vec<ItemSummary>, AppError> {
     let pool = resolve_pool(&store, &pools, id).await?;
     db::search_items(&pool, &filter, limit.unwrap_or(100))
+        .await
+        .map_err(AppError::from)
+}
+
+#[tauri::command]
+pub async fn search_characters(
+    store: State<'_, ProfileStore>,
+    pools: State<'_, DbPoolCache>,
+    id: Uuid,
+    filter: CharacterFilter,
+    limit: Option<u32>,
+) -> Result<Vec<CharacterSummary>, AppError> {
+    let pool = resolve_pool(&store, &pools, id).await?;
+    db::search_characters(&pool, &filter, limit.unwrap_or(100))
         .await
         .map_err(AppError::from)
 }

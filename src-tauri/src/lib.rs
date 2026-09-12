@@ -36,6 +36,7 @@ pub fn run() {
             commands::test_db_connection,
             commands::list_teleports,
             commands::search_items,
+            commands::search_characters,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

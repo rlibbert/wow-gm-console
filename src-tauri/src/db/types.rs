@@ -34,3 +34,24 @@ pub struct ItemFilter {
     pub quality_min: Option<u8>,
     pub required_level_max: Option<u8>,
 }
+
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct CharacterSummary {
+    pub guid: u32,
+    pub name: String,
+    pub race: u8,
+    pub class: u8,
+    pub level: u8,
+    // Raw 0/1 from the `online` column -- kept as u8 rather than bool to
+    // avoid depending on sqlx's TINYINT(1)-vs-bool decoding heuristics for
+    // a column not necessarily declared with that exact display width.
+    pub online: u8,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CharacterFilter {
+    pub name_substring: Option<String>,
+    pub online_only: bool,
+}
