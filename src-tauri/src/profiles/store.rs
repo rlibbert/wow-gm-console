@@ -6,7 +6,7 @@ use directories::ProjectDirs;
 use uuid::Uuid;
 
 use super::keychain;
-use super::model::ServerProfile;
+use super::model::{DbConnectionConfig, ServerProfile};
 
 pub struct ProfileStore {
     path: PathBuf,
@@ -47,6 +47,7 @@ impl ProfileStore {
         self.profiles.lock().unwrap().clone()
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn add(
         &self,
         name: String,
@@ -54,6 +55,8 @@ impl ProfileStore {
         soap_port: u16,
         username: String,
         password: String,
+        db: Option<DbConnectionConfig>,
+        db_password: Option<String>,
     ) -> Result<ServerProfile, String> {
         let profile = ServerProfile {
             id: Uuid::new_v4(),
@@ -61,9 +64,15 @@ impl ProfileStore {
             host,
             soap_port,
             username,
+            db,
         };
 
         keychain::set_password(profile.id, &password)?;
+        if profile.db.is_some() {
+            if let Some(ref db_password) = db_password {
+                keychain::set_db_password(profile.id, db_password)?;
+            }
+        }
 
         let mut profiles = self.profiles.lock().unwrap();
         profiles.push(profile.clone());
@@ -71,6 +80,7 @@ impl ProfileStore {
         Ok(profile)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn update(
         &self,
         id: Uuid,
@@ -79,6 +89,8 @@ impl ProfileStore {
         soap_port: u16,
         username: String,
         password: Option<String>,
+        db: Option<DbConnectionConfig>,
+        db_password: Option<String>,
     ) -> Result<ServerProfile, String> {
         let mut profiles = self.profiles.lock().unwrap();
         let entry = profiles
@@ -95,6 +107,19 @@ impl ProfileStore {
             keychain::set_password(id, &password)?;
         }
 
+        match db {
+            Some(cfg) => {
+                entry.db = Some(cfg);
+                if let Some(ref db_password) = db_password {
+                    keychain::set_db_password(id, db_password)?;
+                }
+            }
+            None => {
+                entry.db = None;
+                keychain::delete_db_password(id)?;
+            }
+        }
+
         let updated = entry.clone();
         self.persist(&profiles)?;
         Ok(updated)
@@ -105,6 +130,7 @@ impl ProfileStore {
         profiles.retain(|p| p.id != id);
         self.persist(&profiles)?;
         keychain::delete_password(id)?;
+        keychain::delete_db_password(id)?;
         Ok(())
     }
 

@@ -19,6 +19,7 @@ pub enum ErrorKind {
     NotFound,
     KeychainError,
     StoreError,
+    DatabaseError,
 }
 
 impl AppError {
@@ -46,6 +47,26 @@ impl From<crate::soap::SoapError> for AppError {
             S::Network(msg) => AppError::new(ErrorKind::NetworkError, msg),
             S::CommandFailed(msg) => AppError::new(ErrorKind::CommandFailed, msg),
             S::MalformedResponse(msg) => AppError::new(ErrorKind::MalformedResponse, msg),
+        }
+    }
+}
+
+impl From<crate::db::DbError> for AppError {
+    fn from(err: crate::db::DbError) -> Self {
+        use crate::db::DbError as D;
+        match err {
+            D::ConnectionFailed(msg) => AppError::new(
+                ErrorKind::DatabaseError,
+                format!("Could not connect to database: {msg}"),
+            ),
+            D::AuthFailed => AppError::new(
+                ErrorKind::DatabaseError,
+                "Database authentication failed -- check the database username/password",
+            ),
+            D::QueryFailed(msg) => {
+                AppError::new(ErrorKind::DatabaseError, format!("Database query failed: {msg}"))
+            }
+            D::Timeout => AppError::new(ErrorKind::Timeout, "Database request timed out"),
         }
     }
 }

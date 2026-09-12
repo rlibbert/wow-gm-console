@@ -1,9 +1,10 @@
 use tauri::State;
 use uuid::Uuid;
 
+use crate::db::DbPoolCache;
 use crate::error::{AppError, ErrorKind};
 use crate::gm_actions;
-use crate::profiles::{self, ProfileStore, ServerProfile};
+use crate::profiles::{self, DbConnectionConfig, ProfileStore, ServerProfile};
 use crate::soap;
 
 #[derive(serde::Serialize)]
@@ -20,6 +21,7 @@ pub fn list_profiles(store: State<'_, ProfileStore>) -> Vec<ServerProfile> {
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn add_profile(
     store: State<'_, ProfileStore>,
     name: String,
@@ -27,32 +29,49 @@ pub fn add_profile(
     soap_port: u16,
     username: String,
     password: String,
+    db: Option<DbConnectionConfig>,
+    db_password: Option<String>,
 ) -> Result<ServerProfile, AppError> {
     store
-        .add(name, host, soap_port, username, password)
+        .add(name, host, soap_port, username, password, db, db_password)
         .map_err(|e| AppError::new(ErrorKind::StoreError, e))
 }
 
 #[tauri::command]
-pub fn update_profile(
+#[allow(clippy::too_many_arguments)]
+pub async fn update_profile(
     store: State<'_, ProfileStore>,
+    pools: State<'_, DbPoolCache>,
     id: Uuid,
     name: String,
     host: String,
     soap_port: u16,
     username: String,
     password: Option<String>,
+    db: Option<DbConnectionConfig>,
+    db_password: Option<String>,
 ) -> Result<ServerProfile, AppError> {
-    store
-        .update(id, name, host, soap_port, username, password)
-        .map_err(|e| AppError::new(ErrorKind::StoreError, e))
+    let updated = store
+        .update(id, name, host, soap_port, username, password, db, db_password)
+        .map_err(|e| AppError::new(ErrorKind::StoreError, e))?;
+    // Always drop any cached DB pool for this profile so stale
+    // host/credentials never linger, regardless of whether the DB fields
+    // specifically changed -- pool creation is lazy and cheap to redo.
+    pools.invalidate(id).await;
+    Ok(updated)
 }
 
 #[tauri::command]
-pub fn remove_profile(store: State<'_, ProfileStore>, id: Uuid) -> Result<(), AppError> {
+pub async fn remove_profile(
+    store: State<'_, ProfileStore>,
+    pools: State<'_, DbPoolCache>,
+    id: Uuid,
+) -> Result<(), AppError> {
     store
         .remove(id)
-        .map_err(|e| AppError::new(ErrorKind::StoreError, e))
+        .map_err(|e| AppError::new(ErrorKind::StoreError, e))?;
+    pools.invalidate(id).await;
+    Ok(())
 }
 
 #[tauri::command]

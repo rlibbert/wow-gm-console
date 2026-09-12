@@ -29,6 +29,7 @@ directories = "5"
 thiserror = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
 tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "mysql", "macros"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

@@ -1,9 +1,11 @@
 mod commands;
+pub mod db;
 mod error;
 mod gm_actions;
 mod profiles;
 pub mod soap;
 
+use db::DbPoolCache;
 use profiles::ProfileStore;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -13,6 +15,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(profile_store)
+        .manage(DbPoolCache::new())
         .invoke_handler(tauri::generate_handler![
             commands::list_profiles,
             commands::add_profile,
@@ -30,6 +33,9 @@ pub fn run() {
             commands::gm_ban_account,
             commands::gm_server_info,
             commands::gm_reload_table,
+            commands::test_db_connection,
+            commands::list_teleports,
+            commands::search_items,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
